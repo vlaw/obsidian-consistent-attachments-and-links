@@ -109,7 +109,12 @@ export class FilesHandler {
       return result;
     }
 
-    const id: string = cache.frontmatter ? cache.frontmatter["ID"] as string : "123";
+    const keyId = cache.frontmatter?.["ID"];
+    if (!keyId) {
+      new Notice("Missing 'ID' in frontmatter", 1000);
+      return result;
+    }
+    const id = keyId as string;
 
     for (const link of getAllLinks(cache)) {
       const { linkPath } = splitSubpath(link.link);
