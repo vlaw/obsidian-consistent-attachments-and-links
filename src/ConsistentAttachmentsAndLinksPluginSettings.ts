@@ -10,6 +10,7 @@ export default class ConsistentAttachmentsAndLinksPluginSettings {
   public moveAttachmentsWithNote = true;
   public showWarning = true;
   public updateLinks = true;
+  public customized = true;
 
   public getIgnoreFilesRegex(): RegExp[] {
     return this.ignoreFiles.map((file) => RegExp(file));

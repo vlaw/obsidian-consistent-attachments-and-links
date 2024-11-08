@@ -98,12 +98,6 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     });
 
     this.addCommand({
-      id: 'refactor-attachments-current-note',
-      name: 'Refactor Attachments in Current Note',
-      checkCallback: this.refactorAttachmentsCurrentNote.bind(this)
-    });
-
-    this.addCommand({
       id: 'delete-empty-folders',
       name: 'Delete Empty Folders',
       callback: () => this.deleteEmptyFolders()
@@ -220,31 +214,24 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     this.deletedNoteCache.set(file.path, prevCache);
   }
 
-  private refactorAttachmentsCurrentNote(checking: boolean): boolean {
-    return this.collectAttachmentsCurrentNote(checking, true);
-  }
-
-  private collectAttachmentsCurrentNote(checking: boolean, customized = false): boolean {
+  private collectAttachmentsCurrentNote(checking: boolean): boolean {
     const note = this.app.workspace.getActiveFile();
     if (!note || !isMarkdownFile(note)) {
       return false;
     }
 
     if (!checking) {
-      console.debug(`1.1. checking: ${checking}, customized: ${customized}`);
-      chain(this.app, () => this.collectAttachments(note, true, customized));
+      chain(this.app, () => this.collectAttachments(note, true));
     }
 
     return true;
   }
 
-  private async collectAttachments(note: TFile, isVerbose = true, customized = false): Promise<void> {
+  private async collectAttachments(note: TFile, isVerbose = true): Promise<void> {
     if (this.isPathIgnored(note.path)) {
       new Notice('Note path is ignored');
       return;
     }
-
-    console.warn("2.1 collectAttachments", `customized: ${customized}`);
 
     await this.saveAllOpenNotes();
 
@@ -252,7 +239,7 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
       note.path,
       this.settings.deleteExistFilesWhenMoveNote,
       this.settings.deleteEmptyFolders,
-      customized);
+      this.settings.customized);
 
     console.warn("2.2 collectAttachments -> result: (交给link-handler)");
     console.dir(result);

@@ -72,6 +72,11 @@ export class ConsistentAttachmentsAndLinksPluginSettingsTab extends PluginSettin
       .setName('Auto Collect Attachments')
       .setDesc('Automatically collect attachments when the note is edited.')
       .addToggle((toggle) => bindUiComponent(this.plugin, toggle, 'autoCollectAttachments'));
+
+    new Setting(this.containerEl)
+      .setName('Customized attachments path')
+      .setDesc('Customized attachments path rule as "assets/[ID]/[MD5].[ext]"')
+      .addToggle((toggle) => bindUiComponent(this.plugin, toggle, 'customized'));
   }
 
   private getNormalizedPath(path: string): string {
