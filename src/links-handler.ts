@@ -31,6 +31,8 @@ import {
   join
 } from 'obsidian-dev-utils/Path';
 
+import {Utils} from "./utils.ts";
+
 export class ConsistencyCheckResult extends Map<string, ReferenceCache[]> {
   public constructor(private title: string) {
     super();
@@ -113,6 +115,14 @@ export class LinksHandler {
     }
 
     return false;
+  }
+
+  public getFileByPath(path: string) {
+    path = Utils.normalizePathForFile(path);
+    let files = this.app.vault.getFiles();
+    let file = files.find(file => Utils.normalizePathForFile(file.path) === path);
+    // FIXME: 可能有问题
+    return file;
   }
 
   public getFullPathForLink(link: string, owningNotePath: string): string {
@@ -203,12 +213,15 @@ export class LinksHandler {
     }): string {
     const { linkPath, subpath } = splitSubpath(link.link);
     const oldLinkPath = extractLinkFile(this.app, link, oldNotePath)?.path ?? join(dirname(oldNotePath), linkPath);
-    const newLinkPath = pathChangeMap ? pathChangeMap.get(oldLinkPath) : extractLinkFile(this.app, link, note.path)?.path ?? join(dirname(note.path), linkPath);
+
+    const newLinkPath = pathChangeMap
+      ? pathChangeMap.get(oldLinkPath) // 取出新的地址
+      : extractLinkFile(this.app, link, note.path)?.path ?? join(dirname(note.path), linkPath);
     if (!newLinkPath) {
       return link.original;
     }
 
-    const newLinkedNote = getFileOrNull(this.app, oldLinkPath) ?? getFileOrNull(this.app, newLinkPath);
+    const newLinkedNote = getFileOrNull(this.app, newLinkPath) ?? getFileOrNull(this.app, oldLinkPath);
 
     if (!newLinkedNote) {
       return link.original;
@@ -354,12 +367,16 @@ export class LinksHandler {
         return [];
       }
       const links = getAllLinks(cache);
-      return links.map((link) => referenceToFileChange(link, this.convertLink({
-        note,
-        link,
-        oldNotePath,
-        pathChangeMap
-      })));
+      return links.map((link) => {
+        let convertedLink = this.convertLink({
+          note,
+          link,
+          oldNotePath,
+          pathChangeMap,
+          forceRelativePath: true,
+        });
+        return referenceToFileChange(link, convertedLink);
+      });
     });
   }
 }

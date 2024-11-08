@@ -98,6 +98,12 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     });
 
     this.addCommand({
+      id: 'refactor-attachments-current-note',
+      name: 'Refactor Attachments in Current Note',
+      checkCallback: this.refactorAttachmentsCurrentNote.bind(this)
+    });
+
+    this.addCommand({
       id: 'delete-empty-folders',
       name: 'Delete Empty Folders',
       callback: () => this.deleteEmptyFolders()
@@ -214,20 +220,24 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     this.deletedNoteCache.set(file.path, prevCache);
   }
 
-  private collectAttachmentsCurrentNote(checking: boolean): boolean {
+  private refactorAttachmentsCurrentNote(checking: boolean): boolean {
+    return this.collectAttachmentsCurrentNote(checking, true);
+  }
+
+  private collectAttachmentsCurrentNote(checking: boolean, customized = false): boolean {
     const note = this.app.workspace.getActiveFile();
     if (!note || !isMarkdownFile(note)) {
       return false;
     }
 
     if (!checking) {
-      chain(this.app, () => this.collectAttachments(note));
+      chain(this.app, () => this.collectAttachments(note, true, customized));
     }
 
     return true;
   }
 
-  private async collectAttachments(note: TFile, isVerbose = true): Promise<void> {
+  private async collectAttachments(note: TFile, isVerbose = true, customized = false): Promise<void> {
     if (this.isPathIgnored(note.path)) {
       new Notice('Note path is ignored');
       return;
@@ -238,7 +248,8 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     const result = await this.fh.collectAttachmentsForCachedNote(
       note.path,
       this.settings.deleteExistFilesWhenMoveNote,
-      this.settings.deleteEmptyFolders);
+      this.settings.deleteEmptyFolders,
+      customized);
 
     if (result.movedAttachments.length > 0) {
       await this.lh.updateChangedPathsInNote(note.path, result.movedAttachments);
@@ -599,7 +610,7 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
       return;
     }
 
-    await this.collectAttachments(file, false);
+    await this.collectAttachments(file, false, false);
   }
 }
 

@@ -25,6 +25,7 @@ import {
   renameSafe
 } from 'obsidian-dev-utils/obsidian/Vault';
 import { dirname } from 'obsidian-dev-utils/Path';
+import {Md5} from "ts-md5";
 
 import type { PathChangeInfo } from './links-handler.ts';
 import { LinksHandler } from './links-handler.ts';
@@ -69,8 +70,20 @@ export class FilesHandler {
     await createFolderSafe(this.app, dirname(filePath));
   }
 
+  private async generateValidBaseName(file: TFile) {
+    let data = await this.app.vault.readBinary(file);
+    const buf = Buffer.from(data);
+
+    // var crypto = require('crypto');
+    // let hash: string = crypto.createHash('md5').update(buf).digest("hex");
+
+    let md5 = new Md5();
+    md5.appendByteArray(buf);
+    return md5.end() as string;
+  }
+
   public async collectAttachmentsForCachedNote(notePath: string,
-    deleteExistFiles: boolean, deleteEmptyFolders: boolean): Promise<MovedAttachmentResult> {
+                                               deleteExistFiles: boolean, deleteEmptyFolders: boolean, customized = false): Promise<MovedAttachmentResult> {
     if (this.isPathIgnored(notePath)) {
       return { movedAttachments: [], renamedFiles: [] };
     }
@@ -86,6 +99,7 @@ export class FilesHandler {
       return result;
     }
 
+    const id: string = cache.frontmatter ? cache.frontmatter["ID"] as string : "123";
     for (const link of getAllLinks(cache)) {
       const { linkPath } = splitSubpath(link.link);
 
@@ -109,11 +123,13 @@ export class FilesHandler {
         continue;
       }
 
-      const newPath = await getAttachmentFilePath(this.app, file.path, notePath);
+      const basename = await this.generateValidBaseName(file);
+      const newPath = !customized ? await getAttachmentFilePath(this.app, file.path, notePath)
+        : `assets/${id}/${basename}.${file.extension}`;
 
-      if (dirname(newPath) === dirname(file.path)) {
-        continue;
-      }
+      // if (dirname(newPath) === dirname(file.path)) {
+      //   continue;
+      // }
 
       const res = await this.moveAttachment(file, newPath, [notePath], deleteExistFiles, deleteEmptyFolders);
 
@@ -182,8 +198,7 @@ export class FilesHandler {
       if (!existFile) {
         console.log(this.consoleLogPrefix + 'copy file [from, to]: \n   ' + path + '\n   ' + newLinkPath);
         result.movedAttachments.push({ oldPath: path, newPath: newLinkPath });
-        await renameSafe(this.app, file, newLinkPath);
-        await copySafe(this.app, file, path);
+        await copySafe(this.app, file, newLinkPath);
       } else if (!deleteExistFiles) {
         const newFileCopyName = getAvailablePath(this.app, newLinkPath);
         console.log(this.consoleLogPrefix + 'copy file with new name [from, to]: \n   ' + path + '\n   ' + newFileCopyName);
@@ -191,6 +206,8 @@ export class FilesHandler {
         await renameSafe(this.app, file, newFileCopyName);
         await copySafe(this.app, file, path);
         result.renamedFiles.push({ oldPath: newLinkPath, newPath: newFileCopyName });
+      } else {
+        result.movedAttachments.push({oldPath: file.path, newPath: newLinkPath});
       }
     }
 
