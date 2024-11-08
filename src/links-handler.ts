@@ -194,6 +194,7 @@ export class LinksHandler {
       pathChangeMap.set(change.oldPath, change.newPath);
     }
 
+    console.log("3. updateChangedPathsInNote > pathChangeMap", pathChangeMap);
     await this.updateLinks(note, note.path, pathChangeMap);
   }
 
@@ -211,6 +212,8 @@ export class LinksHandler {
       pathChangeMap?: Map<string, string> | undefined;
       forceRelativePath?: boolean | undefined;
     }): string {
+
+    console.warn("converting Link: ", arguments);
     const { linkPath, subpath } = splitSubpath(link.link);
     const oldLinkPath = extractLinkFile(this.app, link, oldNotePath)?.path ?? join(dirname(oldNotePath), linkPath);
 
@@ -221,7 +224,9 @@ export class LinksHandler {
       return link.original;
     }
 
+    console.warn("converting Link: newLinkPath: ", newLinkPath)
     const newLinkedNote = getFileOrNull(this.app, newLinkPath) ?? getFileOrNull(this.app, oldLinkPath);
+    console.log(`newLinkedNote: ${newLinkedNote?.path}`);
 
     if (!newLinkedNote) {
       return link.original;
@@ -361,12 +366,16 @@ export class LinksHandler {
   }
 
   private async updateLinks(note: TFile, oldNotePath: string, pathChangeMap?: Map<string, string>): Promise<void> {
+    console.warn("4.1 updateLinks: ", arguments);
+
     await applyFileChanges(this.app, note, async () => {
       const cache = await getCacheSafe(this.app, note);
       if (!cache) {
         return [];
       }
       const links = getAllLinks(cache);
+      console.log(`4.2 old links: ${links.map(link => link.original).join("\n- ")}`);
+
       return links.map((link) => {
         let convertedLink = this.convertLink({
           note,
@@ -375,6 +384,7 @@ export class LinksHandler {
           pathChangeMap,
           forceRelativePath: true,
         });
+        console.log(`4.2.x convertedLink: ${link.link} -> ${convertedLink}`);
         return referenceToFileChange(link, convertedLink);
       });
     });

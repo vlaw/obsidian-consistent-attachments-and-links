@@ -231,6 +231,7 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     }
 
     if (!checking) {
+      console.debug(`1.1. checking: ${checking}, customized: ${customized}`);
       chain(this.app, () => this.collectAttachments(note, true, customized));
     }
 
@@ -243,6 +244,8 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
       return;
     }
 
+    console.warn("2.1 collectAttachments", `customized: ${customized}`);
+
     await this.saveAllOpenNotes();
 
     const result = await this.fh.collectAttachmentsForCachedNote(
@@ -250,6 +253,9 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
       this.settings.deleteExistFilesWhenMoveNote,
       this.settings.deleteEmptyFolders,
       customized);
+
+    console.warn("2.2 collectAttachments -> result: (交给link-handler)");
+    console.dir(result);
 
     if (result.movedAttachments.length > 0) {
       await this.lh.updateChangedPathsInNote(note.path, result.movedAttachments);
@@ -540,6 +546,10 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     );
   }
 
+  /**
+   * 保存所有的文件
+   * @private
+   */
   private async saveAllOpenNotes(): Promise<void> {
     for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
       if (leaf.view instanceof MarkdownView) {
