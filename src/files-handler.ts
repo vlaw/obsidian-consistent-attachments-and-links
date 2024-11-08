@@ -83,7 +83,7 @@ export class FilesHandler {
   }
 
   public async collectAttachmentsForCachedNote(notePath: string,
-                                               deleteExistFiles: boolean, deleteEmptyFolders: boolean, customized = false): Promise<MovedAttachmentResult> {
+       deleteExistFiles: boolean, deleteEmptyFolders: boolean, customized = false): Promise<MovedAttachmentResult> {
     if (this.isPathIgnored(notePath)) {
       return { movedAttachments: [], renamedFiles: [] };
     }
