@@ -25,6 +25,7 @@ import {
   renameSafe
 } from 'obsidian-dev-utils/obsidian/Vault';
 import { dirname } from 'obsidian-dev-utils/Path';
+import {Md5} from "ts-md5";
 
 import type { PathChangeInfo } from './links-handler.ts';
 
@@ -85,11 +86,21 @@ export class FilesHandler {
     return false;
   }
 
+
+  private async generateValidBaseName(file: TFile) {
+    let data = await this.app.vault.readBinary(file);
+    const buf = Buffer.from(data);
+    let md5 = new Md5();
+    md5.appendByteArray(buf);
+    return md5.end() as string;
+  }
+
   private async moveAttachment(file: TFile, newLinkPath: string, parentNotePaths: string[], deleteExistFiles: boolean, deleteEmptyFolders: boolean): Promise<MovedAttachmentResult> {
     const path = file.path;
 
     const result: MovedAttachmentResult = {
       movedAttachments: [],
+      // 目标文件已存在, 且不能覆盖的情况下, 使用rename
       renamedFiles: []
     };
 
@@ -122,15 +133,18 @@ export class FilesHandler {
     if (linkedNotes.length == 0) {
       const existFile = getFileOrNull(this.app, newLinkPath);
       if (!existFile) {
+        console.log(`linkedNotes.1(独占链接, 目标文件不存在, 移动, 记录移动)`);
         console.log(this.consoleLogPrefix + 'move file [from, to]: \n   ' + path + '\n   ' + newLinkPath);
         result.movedAttachments.push({ newPath: newLinkPath, oldPath: path });
         await renameSafe(this.app, file, newLinkPath);
       } else {
         if (deleteExistFiles) {
+          console.log("linkedNotes.2(独占链接, 目标文件已存在, 删除, 记录移动)");
           console.log(this.consoleLogPrefix + 'delete file: \n   ' + path);
           result.movedAttachments.push({ newPath: newLinkPath, oldPath: path });
           await this.deleteFile(file, deleteEmptyFolders);
         } else {
+          console.log("linkedNotes.3(独占链接, 目标文件已存在, 不删除, 自动重命名, 记录重命名");
           const newFileCopyName = getAvailablePath(this.app, newLinkPath);
           console.log(this.consoleLogPrefix + 'copy file with new name [from, to]: \n   ' + path + '\n   ' + newFileCopyName);
           result.movedAttachments.push({ newPath: newFileCopyName, oldPath: path });
@@ -141,17 +155,23 @@ export class FilesHandler {
     } else {
       const existFile = getFileOrNull(this.app, newLinkPath);
       if (!existFile) {
+        console.log("linkedNotes.4(复用链接, 目标文件不存在)");
         console.log(this.consoleLogPrefix + 'copy file [from, to]: \n   ' + path + '\n   ' + newLinkPath);
         result.movedAttachments.push({ newPath: newLinkPath, oldPath: path });
-        await renameSafe(this.app, file, newLinkPath);
-        await copySafe(this.app, file, path);
+        // await renameSafe(this.app, file, newLinkPath);
+        // await copySafe(this.app, file, path);
+        await copySafe(this.app, file, newLinkPath);
       } else if (!deleteExistFiles) {
+        console.log("linkedNotes.5");
         const newFileCopyName = getAvailablePath(this.app, newLinkPath);
         console.log(this.consoleLogPrefix + 'copy file with new name [from, to]: \n   ' + path + '\n   ' + newFileCopyName);
         result.movedAttachments.push({ newPath: newFileCopyName, oldPath: file.path });
         await renameSafe(this.app, file, newFileCopyName);
         await copySafe(this.app, file, path);
         result.renamedFiles.push({ newPath: newFileCopyName, oldPath: newLinkPath });
+      } else {
+        console.log("linkedNotes.6");
+        result.movedAttachments.push({oldPath: file.path, newPath: newLinkPath});
       }
     }
 
@@ -162,7 +182,7 @@ export class FilesHandler {
   }
 
   public async collectAttachmentsForCachedNote(notePath: string,
-    deleteExistFiles: boolean, deleteEmptyFolders: boolean): Promise<MovedAttachmentResult> {
+    deleteExistFiles: boolean, deleteEmptyFolders: boolean, customized: boolean): Promise<MovedAttachmentResult> {
     if (this.isPathIgnored(notePath)) {
       return { movedAttachments: [], renamedFiles: [] };
     }
@@ -177,6 +197,12 @@ export class FilesHandler {
     if (!cache) {
       return result;
     }
+    const keyId = cache.frontmatter?.["ID"];
+    if (!keyId) {
+      new Notice("Missing 'ID' in frontmatter", 1000);
+      return result;
+    }
+    const id = keyId as string;
 
     for (const link of getAllLinks(cache)) {
       const { linkPath } = splitSubpath(link.link);
@@ -201,11 +227,8 @@ export class FilesHandler {
         continue;
       }
 
-      const newPath = await getAttachmentFilePath(this.app, file.path, notePath);
-
-      if (dirname(newPath) === dirname(file.path)) {
-        continue;
-      }
+      const newPath = !customized ? await getAttachmentFilePath(this.app, file.path, notePath)
+        : `assets/${id}/${await this.generateValidBaseName(file)}.${file.extension}`;
 
       const res = await this.moveAttachment(file, newPath, [notePath], deleteExistFiles, deleteEmptyFolders);
 
