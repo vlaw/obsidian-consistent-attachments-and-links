@@ -2,8 +2,9 @@ import {
   App,
   TFile
 } from 'obsidian';
-import { getAttachmentFilePath } from 'obsidian-dev-utils/obsidian/AttachmentPath';
+import {getAttachmentFilePath} from 'obsidian-dev-utils/obsidian/AttachmentPath';
 import {
+  getFile,
   getFileOrNull,
   isNote
 } from 'obsidian-dev-utils/obsidian/FileSystem';
@@ -24,12 +25,13 @@ import {
   listSafe,
   renameSafe
 } from 'obsidian-dev-utils/obsidian/Vault';
-import { dirname } from 'obsidian-dev-utils/Path';
-import {Md5} from "ts-md5";
+import { dirname, join, normalize } from 'obsidian-dev-utils/Path';
+import { Md5 } from "ts-md5";
 
 import type { PathChangeInfo } from './links-handler.ts';
 
 import { LinksHandler } from './links-handler.ts';
+import { trimStart } from "obsidian-dev-utils/String";
 
 export interface MovedAttachmentResult {
   movedAttachments: PathChangeInfo[];
@@ -86,13 +88,52 @@ export class FilesHandler {
     return false;
   }
 
+  private async getCustomizedNewPath(app: App, notePath: string, attachmentFile: TFile, id: string): Promise<string> {
 
-  private async generateValidBaseName(file: TFile) {
-    let data = await this.app.vault.readBinary(file);
-    const buf = Buffer.from(data);
-    let md5 = new Md5();
-    md5.appendByteArray(buf);
-    return md5.end() as string;
+    async function generateValidBaseName(app: App, attachment: TFile) {
+      let data = await app.vault.readBinary(attachment);
+      const buf = Buffer.from(data);
+      let md5 = new Md5();
+      md5.appendByteArray(buf);
+      return md5.end() as string;
+    }
+
+    /**
+     * Normalizes a path by combining multiple slashes into a single slash and removing leading and trailing slashes.
+     * @param path - Path to normalize.
+     * @returns The normalized path.
+     */
+    function normalizeSlashes(path: string): string {
+      path = path.replace(/([\\/])+/g, '/');
+      path = path.replace(/(^\/+|\/+$)/g, '');
+      return path || '/';
+    }
+
+    const basename = await generateValidBaseName(app, attachmentFile);
+    const filename = `${basename}.${attachmentFile.extension}`;
+
+    const noteFile = getFile(app, notePath)
+    // console.log("notefile.parent", noteFile.parent?.path);
+    // console.log("notefile.prefix", noteFile.parent?.getParentPrefix());
+
+    let attachmentFolderPath = app.vault.getConfig('attachmentFolderPath') as string;
+    const isCurrentFolder = attachmentFolderPath === '.' || attachmentFolderPath === './';
+    let relativePath = null;
+
+    if (attachmentFolderPath.startsWith('./')) {
+      relativePath = trimStart(attachmentFolderPath, './');
+    }
+
+    if (isCurrentFolder) {
+      attachmentFolderPath = noteFile ? noteFile.parent?.path ?? '' : '';
+    } else if (relativePath) {
+      attachmentFolderPath = (noteFile? noteFile.parent?.getParentPrefix() ?? '' : '') + relativePath;
+    }
+
+    attachmentFolderPath = normalize(normalizeSlashes(attachmentFolderPath));
+
+    const newPath = join(attachmentFolderPath, id, filename);
+    return newPath;
   }
 
   private async moveAttachment(file: TFile, newLinkPath: string, parentNotePaths: string[], deleteExistFiles: boolean, deleteEmptyFolders: boolean): Promise<MovedAttachmentResult> {
@@ -197,9 +238,10 @@ export class FilesHandler {
     if (!cache) {
       return result;
     }
+
     const keyId = cache.frontmatter?.["ID"];
     if (!keyId) {
-      new Notice("Missing 'ID' in frontmatter", 1000);
+      new Notice(`Missing 'ID' in frontmatter of ${notePath}`, 1000);
       return result;
     }
     const id = keyId as string;
@@ -228,7 +270,7 @@ export class FilesHandler {
       }
 
       const newPath = !customized ? await getAttachmentFilePath(this.app, file.path, notePath)
-        : `assets/${id}/${await this.generateValidBaseName(file)}.${file.extension}`;
+        : await this.getCustomizedNewPath(this.app, notePath, file, id);
 
       const res = await this.moveAttachment(file, newPath, [notePath], deleteExistFiles, deleteEmptyFolders);
 
