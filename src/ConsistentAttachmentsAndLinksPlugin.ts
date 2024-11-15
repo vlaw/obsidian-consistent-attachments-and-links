@@ -11,7 +11,8 @@ import { omitAsyncReturnType } from 'obsidian-dev-utils/Function';
 import { chain } from 'obsidian-dev-utils/obsidian/ChainedPromise';
 import {
   getOrCreateFile,
-  isMarkdownFile
+  isMarkdownFile,
+  getMarkdownFiles
 } from 'obsidian-dev-utils/obsidian/FileSystem';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
 import { registerRenameDeleteHandlers } from 'obsidian-dev-utils/obsidian/RenameDeleteHandler';
@@ -98,6 +99,12 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
       checkCallback: this.collectAttachmentsCurrentNote.bind(this),
       id: 'collect-attachments-current-note',
       name: 'Collect Attachments in Current Note'
+    });
+
+    this.addCommand({
+      id: 'collect-all-attachments-current-folder',
+      name: 'Collect All Attachments in Current Folder',
+      checkCallback: this.collectAllAttachmentsInCurrentFolder.bind(this)
     });
 
     this.addCommand({
@@ -236,12 +243,16 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
   }
 
   private async collectAllAttachments(): Promise<void> {
+    const notes = getMarkdownFilesSorted(this.app);
+    await this.processNotes(notes);
+  }
+
+  private async processNotes(notes: TFile[]) {
     let movedAttachmentsCount = 0;
     let processedNotesCount = 0;
 
     await this.saveAllOpenNotes();
 
-    const notes = getMarkdownFilesSorted(this.app);
     let i = 0;
     const notice = new Notice('', 0);
     for (const note of notes) {
@@ -260,7 +271,8 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
       const result = await this.fh.collectAttachmentsForCachedNote(
         note.path,
         this.settings.deleteExistFilesWhenMoveNote,
-        this.settings.deleteEmptyFolders);
+        this.settings.deleteEmptyFolders,
+        this.settings.customized);
 
       if (result.movedAttachments.length > 0) {
         await this.lh.updateChangedPathsInNote(note.path, result.movedAttachments);
@@ -289,7 +301,8 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     const result = await this.fh.collectAttachmentsForCachedNote(
       note.path,
       this.settings.deleteExistFilesWhenMoveNote,
-      this.settings.deleteEmptyFolders);
+      this.settings.deleteEmptyFolders,
+      this.settings.customized);
 
     if (result.movedAttachments.length > 0) {
       await this.lh.updateChangedPathsInNote(note.path, result.movedAttachments);
@@ -315,6 +328,28 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     }
 
     return true;
+  }
+
+  private collectAllAttachmentsInCurrentFolder(checking: boolean): boolean {
+    const note = this.app.workspace.getActiveFile();
+    if (!note || !isMarkdownFile(note)) {
+      return false;
+    }
+
+    if (!checking) {
+      chain(this.app, () => this.collectAllAttachmentsInFolderCall(note));
+    }
+
+    return true;
+  }
+
+  private async collectAllAttachmentsInFolderCall(note: TFile): Promise<void> {
+    const folder = note.parent;
+    if (!folder) {
+      return;
+    }
+    const notes: TFile[] = getMarkdownFiles(this.app, folder);
+    await this.processNotes.call(this, notes);
   }
 
   private async convertAllEmbedsPathsToRelative(): Promise<void> {
