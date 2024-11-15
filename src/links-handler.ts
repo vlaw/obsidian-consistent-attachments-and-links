@@ -159,7 +159,7 @@ export class LinksHandler {
       return link.original;
     }
 
-    const newLinkedNote = getFileOrNull(this.app, oldLinkPath) ?? getFileOrNull(this.app, newLinkPath);
+    const newLinkedNote = getFileOrNull(this.app, newLinkPath) ?? getFileOrNull(this.app, oldLinkPath);
 
     if (!newLinkedNote) {
       return link.original;
@@ -253,7 +253,8 @@ export class LinksHandler {
         link,
         note,
         oldNotePath,
-        pathChangeMap
+        pathChangeMap,
+        forceRelativePath: true
       })));
     });
   }
