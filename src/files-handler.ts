@@ -113,8 +113,6 @@ export class FilesHandler {
     const filename = `${basename}.${attachmentFile.extension}`;
 
     const noteFile = getFile(app, notePath)
-    // console.log("notefile.parent", noteFile.parent?.path);
-    // console.log("notefile.prefix", noteFile.parent?.getParentPrefix());
 
     let attachmentFolderPath = app.vault.getConfig('attachmentFolderPath') as string;
     const isCurrentFolder = attachmentFolderPath === '.' || attachmentFolderPath === './';
@@ -125,8 +123,12 @@ export class FilesHandler {
     }
 
     if (isCurrentFolder) {
+      // console.log("notefile.parent", noteFile.parent?.path);
+      // CLI/TUI
       attachmentFolderPath = noteFile ? noteFile.parent?.path ?? '' : '';
     } else if (relativePath) {
+      // console.log("notefile.prefix", noteFile.parent?.getParentPrefix());
+      // -> CLI/TUI/
       attachmentFolderPath = (noteFile? noteFile.parent?.getParentPrefix() ?? '' : '') + relativePath;
     }
 
