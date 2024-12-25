@@ -30,7 +30,10 @@ push-new-branches = false
 # until they are proposed.
 #
 # More info at https://www.git-town.com/preferences/create-prototype-branches.
-create-prototype-branches = false
+# create-prototype-branches = false
+# The Git Town configuration file contains the deprecated setting "create-prototype-branches".
+# Please upgrade to the new format:
+create.new-branch-type = "prototype"
 
 # Which method should Git Town use to ship feature branches?
 #
