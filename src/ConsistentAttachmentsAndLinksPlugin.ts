@@ -348,7 +348,7 @@ export default class ConsistentAttachmentsAndLinksPlugin extends PluginBase<Cons
     if (!folder) {
       return;
     }
-    const notes: TFile[] = getMarkdownFiles(this.app, folder);
+    const notes: TFile[] = getMarkdownFiles(this.app, folder, true);
     await this.processNotes.call(this, notes);
   }
 
