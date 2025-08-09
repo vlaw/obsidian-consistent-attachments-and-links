@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 3.30.5-beta.3
+
+
 ## 3.30.5-beta.2
 
 
