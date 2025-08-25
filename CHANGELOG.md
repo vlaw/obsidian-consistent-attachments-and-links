@@ -1,13 +1,25 @@
 # CHANGELOG
 
-## 3.30.5-beta.4
+## 3.30.9
 
+- Update libs
 
-## 3.30.5-beta.3
+## 3.30.8
 
+- Update libs
 
-## 3.30.5-beta.2
+## 3.30.7
 
+- More abortSignal
+- Update libs
+
+## 3.30.6
+
+- Update libs
+
+## 3.30.5
+
+- Update libs
 
 ## 3.30.5-beta.1
 
