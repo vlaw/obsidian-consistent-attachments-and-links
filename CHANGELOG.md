@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.30.10-beta.1
+
+- fix: %20 check error
+
 ## 3.30.9
 
 - Update libs
@@ -20,10 +24,6 @@
 ## 3.30.5
 
 - Update libs
-
-## 3.30.5-beta.1
-
-- fix: %20 check error
 
 ## 3.30.4
 
