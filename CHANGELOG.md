@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 3.30.10-beta.2
+
+
 ## 3.30.10-beta.1
 
 - fix: %20 check error
