@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.30.13-beta.1
+
+- Merge tag 'tags/3.30.12' into develop 3.30.12
+
 ## 3.30.12
 
 - Update libs
