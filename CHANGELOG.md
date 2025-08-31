@@ -1,7 +1,16 @@
 # CHANGELOG
 
-## 3.30.10-beta.2
+## 3.30.12
 
+- Update libs
+
+## 3.30.11
+
+- Update libs
+
+## 3.30.10
+
+- Update libs
 
 ## 3.30.10-beta.1
 
