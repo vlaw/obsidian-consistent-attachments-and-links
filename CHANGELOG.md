@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 3.31.13-beta.2
+
+- feat: 增加一个是否启用collect的开关
+- chore: git-town config
+
 ## 3.31.13-beta.1
 
 - chore: npm i
