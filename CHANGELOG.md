@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 3.31.13-beta.1
+
+- chore: npm i
+- fix: %20 check error
+
 ## 3.31.12
 
 - chore: update libs
