@@ -16,10 +16,13 @@ export class PluginSettings {
   public shouldDeleteAttachmentsWithNote = false;
 
   public shouldDeleteExistingFilesWhenMovingNote = false;
+  // Enable collect* commands or not
+  public shouldEnableCollectCommands = true;
   public shouldMoveAttachmentsWithNote = false;
   public shouldShowBackupWarning = true;
   public shouldUpdateLinks = true;
   public treatAsAttachmentExtensions: readonly string[] = ['.excalidraw.md'];
+
   public get excludePaths(): string[] {
     return this._excludePaths;
   }

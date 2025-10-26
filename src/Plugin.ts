@@ -104,23 +104,25 @@ export class Plugin extends PluginBase<PluginTypes> {
       return settings;
     });
 
-    this.addCommand({
-      callback: () => this.collectAllAttachments(),
-      id: 'collect-all-attachments',
-      name: 'Collect All Attachments'
-    });
+    if (this.settings.shouldEnableCollectCommands) {
+      this.addCommand({
+        callback: () => this.collectAllAttachments(),
+        id: 'collect-all-attachments',
+        name: 'Collect All Attachments'
+      });
 
-    this.addCommand({
-      checkCallback: (checking) => this.collectAttachmentsCurrentFolder(checking),
-      id: 'collect-attachments-current-folder',
-      name: 'Collect Attachments in Current Folder'
-    });
+      this.addCommand({
+        checkCallback: (checking) => this.collectAttachmentsCurrentFolder(checking),
+        id: 'collect-attachments-current-folder',
+        name: 'Collect Attachments in Current Folder'
+      });
 
-    this.addCommand({
-      checkCallback: this.collectAttachmentsCurrentNote.bind(this),
-      id: 'collect-attachments-current-note',
-      name: 'Collect Attachments in Current Note'
-    });
+      this.addCommand({
+        checkCallback: this.collectAttachmentsCurrentNote.bind(this),
+        id: 'collect-attachments-current-note',
+        name: 'Collect Attachments in Current Note'
+      });
+    }
 
     this.addCommand({
       callback: () => this.deleteEmptyFolders(),

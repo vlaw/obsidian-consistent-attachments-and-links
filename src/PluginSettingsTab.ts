@@ -184,6 +184,11 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       .addMultipleText((multipleText) => {
         this.bind(multipleText, 'treatAsAttachmentExtensions');
       });
+
+    new SettingEx(this.containerEl)
+      .setName('Enable Collect Attachments Commands')
+      .setDesc('Enable collect-* commands')
+      .addToggle((toggle) => this.bind(toggle, 'shouldEnableCollectCommands'));
   }
 
   private async checkDangerousSetting(settingKey: keyof PluginSettings, settingName: string): Promise<void> {
