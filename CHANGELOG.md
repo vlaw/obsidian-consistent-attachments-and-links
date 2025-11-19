@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 3.31.16-beta.1
+
+- chore: package-lock
+- feat: 关掉 decodeURIComponent
+- Merge tag 'tags/3.31.15' into develop 3.31.15
+- chore: release 3.31.13-beta.2
+- feat: 增加一个是否启用collect的开关
+- chore: git-town config
+- chore: release 3.31.13-beta.1
+- chore: npm i
+- fix: %20 check error
+
 ## 3.31.15
 
 - fix: handling include/exclude paths not ending with /
