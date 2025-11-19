@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 3.31.15
+
+- fix: handling include/exclude paths not ending with /
+
+## 3.31.14
+
+- chore: update libs
+
+## 3.31.13
+
+- chore: update libs
+  - re #143
+
 ## 3.31.13-beta.2
 
 - feat: 增加一个是否启用collect的开关
