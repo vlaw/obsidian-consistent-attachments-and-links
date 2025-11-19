@@ -326,8 +326,6 @@ export class LinksHandler {
       fullLinkPath = join(dirname(notePath), linkPath);
     }
 
-    fullLinkPath = decodeURIComponent(fullLinkPath);
-
     const file = getFileOrNull(this.plugin.app, fullLinkPath);
 
     if (!file) {
