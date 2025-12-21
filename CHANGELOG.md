@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.32.2-beta.1
+
+- Merge tag 'tags/3.32.1' into develop 3.32.1
+
 ## 3.32.1
 
 - feat: improve description re #144
