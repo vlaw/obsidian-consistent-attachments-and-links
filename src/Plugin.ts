@@ -1,8 +1,5 @@
-import type {
-  CachedMetadata,
-  Menu,
-  TAbstractFile
-} from 'obsidian';
+import type { CachedMetadata } from 'obsidian';
+import type { TranslationsMap } from 'obsidian-dev-utils/obsidian/i18n/i18n';
 import type { PluginSettingsWrapper } from 'obsidian-dev-utils/obsidian/Plugin/PluginSettingsWrapper';
 import type { RenameDeleteHandlerSettings } from 'obsidian-dev-utils/obsidian/RenameDeleteHandler';
 import type { ReadonlyDeep } from 'type-fest';
@@ -15,9 +12,7 @@ import {
 } from 'obsidian';
 import { omitAsyncReturnType } from 'obsidian-dev-utils/Function';
 import {
-  getMarkdownFiles,
   getOrCreateFile,
-  isFolder,
   isMarkdownFile
 } from 'obsidian-dev-utils/obsidian/FileSystem';
 import { loop } from 'obsidian-dev-utils/obsidian/Loop';
@@ -34,7 +29,27 @@ import { dirname } from 'obsidian-dev-utils/Path';
 import type { PluginSettings } from './PluginSettings.ts';
 import type { PluginTypes } from './PluginTypes.ts';
 
+import {
+  collectAttachmentsEntireVault,
+  collectAttachmentsInAbstractFiles
+} from './AttachmentCollector.ts';
+import { CheckConsistencyCommand } from './Commands/CheckConsistencyCommand.ts';
+import { CollectAttachmentsEntireVaultCommand } from './Commands/CollectAttachmentsEntireVaultCommand.ts';
+import { CollectAttachmentsInCurrentFolderCommand } from './Commands/CollectAttachmentsInCurrentFolderCommand.ts';
+import { CollectAttachmentsInFileCommand } from './Commands/CollectAttachmentsInFileCommand.ts';
+import { ConvertAllEmbedsPathsToRelativeCommand } from './Commands/ConvertAllEmbedsPathsToRelativeCommand.ts';
+import { ConvertAllEmbedsPathsToRelativeCurrentNoteCommand } from './Commands/ConvertAllEmbedsPathsToRelativeCurrentNoteCommand.ts';
+import { ConvertAllLinkPathsToRelativeCommand } from './Commands/ConvertAllLinkPathsToRelativeCommand.ts';
+import { ConvertAllLinkPathsToRelativeCurrentNoteCommand } from './Commands/ConvertAllLinkPathsToRelativeCurrentNoteCommand.ts';
+import { DeleteEmptyFoldersCommand } from './Commands/DeleteEmptyFoldersCommand.ts';
+import { MoveAttachmentToProperFolderCommand } from './Commands/MoveAttachmentToProperFolderCommand.ts';
+import { ReorganizeVaultCommand } from './Commands/ReorganizeVaultCommand.ts';
+import { ReplaceAllWikiEmbedsWithMarkdownEmbedsCommand } from './Commands/ReplaceAllWikiEmbedsWithMarkdownEmbedsCommand.ts';
+import { ReplaceAllWikiEmbedsWithMarkdownEmbedsCurrentNoteCommand } from './Commands/ReplaceAllWikiEmbedsWithMarkdownEmbedsCurrentNoteCommand.ts';
+import { ReplaceAllWikilinksWithMarkdownLinksCommand } from './Commands/ReplaceAllWikilinksWithMarkdownLinksCommand.ts';
+import { ReplaceAllWikilinksWithMarkdownLinksCurrentNoteCommand } from './Commands/ReplaceAllWikilinksWithMarkdownLinksCurrentNoteCommand.ts';
 import { FilesHandler } from './files-handler.ts';
+import { translationsMap } from './i18n/locales/translationsMap.ts';
 import {
   ConsistencyCheckResult,
   LinksHandler
@@ -48,158 +63,7 @@ export class Plugin extends PluginBase<PluginTypes> {
   private linksHandler: LinksHandler = new LinksHandler(this);
   private filesHandler: FilesHandler = new FilesHandler(this, this.linksHandler);
 
-  public override async onLoadSettings(loadedSettings: ReadonlyDeep<PluginSettingsWrapper<PluginSettings>>, isInitialLoad: boolean): Promise<void> {
-    await super.onLoadSettings(loadedSettings, isInitialLoad);
-    loadedSettings.settings.revertDangerousSettings();
-  }
-
-  public override async onSaveSettings(
-    newSettings: ReadonlyDeep<PluginSettingsWrapper<PluginSettings>>,
-    oldSettings: ReadonlyDeep<PluginSettingsWrapper<PluginSettings>>,
-    context?: unknown
-  ): Promise<void> {
-    await super.onSaveSettings(newSettings, oldSettings, context);
-    this.linksHandler = new LinksHandler(this);
-    this.filesHandler = new FilesHandler(this, this.linksHandler);
-  }
-
-  protected override createSettingsManager(): PluginSettingsManager {
-    return new PluginSettingsManager(this);
-  }
-
-  protected override createSettingsTab(): null | PluginSettingsTab {
-    return new PluginSettingsTab(this);
-  }
-
-  protected override async onLayoutReady(): Promise<void> {
-    await this.showBackupWarning();
-
-    this.registerEvent(
-      this.app.metadataCache.on('deleted', (file, prevCache) => {
-        if (prevCache) {
-          this.handleDeletedMetadata(file, prevCache);
-        }
-      })
-    );
-
-    this.registerEvent(this.app.metadataCache.on('changed', (file) => {
-      addToQueue(this.app, (abortSignal) => this.handleMetadataCacheChanged(file, abortSignal), this.abortSignal);
-    }));
-  }
-
-  protected override async onloadImpl(): Promise<void> {
-    await super.onloadImpl();
-
-    registerRenameDeleteHandlers(this, () => {
-      const settings: Partial<RenameDeleteHandlerSettings> = {
-        emptyAttachmentFolderBehavior: this.settings.emptyAttachmentFolderBehavior,
-        isNote: (path) => this.filesHandler.isNoteEx(path),
-        isPathIgnored: (path) => this.settings.isPathIgnored(path),
-        shouldDeleteConflictingAttachments: this.settings.shouldDeleteExistingFilesWhenMovingNote,
-        shouldHandleDeletions: this.settings.shouldDeleteAttachmentsWithNote,
-        shouldHandleRenames: this.settings.shouldUpdateLinks,
-        shouldRenameAttachmentFolder: this.settings.shouldMoveAttachmentsWithNote,
-        shouldUpdateFileNameAliases: this.settings.shouldChangeNoteBacklinksDisplayText
-      };
-      return settings;
-    });
-
-    if (this.settings.shouldEnableCollectCommands) {
-      this.addCommand({
-        callback: () => this.collectAllAttachments(),
-        id: 'collect-all-attachments',
-        name: 'Collect All Attachments'
-      });
-
-      this.addCommand({
-        checkCallback: (checking) => this.collectAttachmentsCurrentFolder(checking),
-        id: 'collect-attachments-current-folder',
-        name: 'Collect Attachments in Current Folder'
-      });
-
-      this.addCommand({
-        checkCallback: this.collectAttachmentsCurrentNote.bind(this),
-        id: 'collect-attachments-current-note',
-        name: 'Collect Attachments in Current Note'
-      });
-    }
-
-    this.addCommand({
-      callback: () => this.deleteEmptyFolders(),
-      id: 'delete-empty-folders',
-      name: 'Delete Empty Folders'
-    });
-
-    this.addCommand({
-      callback: () => this.convertAllLinkPathsToRelative(this.abortSignal),
-      id: 'convert-all-link-paths-to-relative',
-      name: 'Convert All Link Paths to Relative'
-    });
-
-    this.addCommand({
-      checkCallback: this.convertAllLinkPathsToRelativeCurrentNote.bind(this),
-      id: 'convert-all-link-paths-to-relative-current-note',
-      name: 'Convert All Link Paths to Relative in Current Note'
-    });
-
-    this.addCommand({
-      callback: () => this.convertAllEmbedsPathsToRelative(),
-      id: 'convert-all-embed-paths-to-relative',
-      name: 'Convert All Embed Paths to Relative'
-    });
-
-    this.addCommand({
-      checkCallback: this.convertAllEmbedsPathsToRelativeCurrentNote.bind(this),
-      id: 'convert-all-embed-paths-to-relative-current-note',
-      name: 'Convert All Embed Paths to Relative in Current Note'
-    });
-
-    this.addCommand({
-      callback: () => this.replaceAllWikilinksWithMarkdownLinks(),
-      id: 'replace-all-wikilinks-with-markdown-links',
-      name: 'Replace All Wiki Links with Markdown Links'
-    });
-
-    this.addCommand({
-      checkCallback: this.replaceAllWikilinksWithMarkdownLinksCurrentNote.bind(this),
-      id: 'replace-all-wikilinks-with-markdown-links-current-note',
-      name: 'Replace All Wiki Links with Markdown Links in Current Note'
-    });
-
-    this.addCommand({
-      callback: () => this.replaceAllWikiEmbedsWithMarkdownEmbeds(),
-      id: 'replace-all-wiki-embeds-with-markdown-embeds',
-      name: 'Replace All Wiki Embeds with Markdown Embeds'
-    });
-
-    this.addCommand({
-      checkCallback: this.replaceAllWikiEmbedsWithMarkdownEmbedsCurrentNote.bind(this),
-      id: 'replace-all-wiki-embeds-with-markdown-embeds-current-note',
-      name: 'Replace All Wiki Embeds with Markdown Embeds in Current Note'
-    });
-
-    this.addCommand({
-      callback: () => this.reorganizeVault(),
-      id: 'reorganize-vault',
-      name: 'Reorganize Vault'
-    });
-
-    this.addCommand({
-      callback: () => this.checkConsistency(),
-      id: 'check-consistency',
-      name: 'Check Vault consistency'
-    });
-
-    this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
-      this.handleFileMenu(menu, file);
-    }));
-
-    this.linksHandler = new LinksHandler(this);
-
-    this.filesHandler = new FilesHandler(this, this.linksHandler);
-  }
-
-  private async checkConsistency(): Promise<void> {
+  public async checkConsistency(): Promise<void> {
     await this.saveAllOpenNotes();
 
     const badLinks = new ConsistencyCheckResult('Bad links');
@@ -241,109 +105,7 @@ export class Plugin extends PluginBase<PluginTypes> {
     }
   }
 
-  private async collectAllAttachments(): Promise<void> {
-    await this.collectAttachmentsInFolder('/', this.abortSignal);
-  }
-
-  private async collectAttachments(note: TFile, abortSignal: AbortSignal, isVerbose = true): Promise<void> {
-    abortSignal.throwIfAborted();
-    if (this.settings.isPathIgnored(note.path)) {
-      if (isVerbose) {
-        new Notice('Note path is ignored');
-      }
-      return;
-    }
-
-    await this.saveAllOpenNotes();
-    abortSignal.throwIfAborted();
-
-    const result = await this.filesHandler.collectAttachmentsForCachedNote(note.path);
-    abortSignal.throwIfAborted();
-
-    if (result.movedAttachments.length > 0) {
-      await this.linksHandler.updateChangedPathsInNote(note.path, result.movedAttachments);
-      abortSignal.throwIfAborted();
-    }
-
-    if (result.movedAttachments.length === 0) {
-      if (isVerbose) {
-        new Notice('No files found that need to be moved');
-      }
-    } else {
-      new Notice(`Moved ${String(result.movedAttachments.length)} attachment${result.movedAttachments.length > 1 ? 's' : ''}`);
-    }
-  }
-
-  private collectAttachmentsCurrentFolder(checking: boolean): boolean {
-    const note = this.app.workspace.getActiveFile();
-    if (!note || !isMarkdownFile(this.app, note)) {
-      return false;
-    }
-
-    if (!checking) {
-      addToQueue(this.app, (abortSignal) => this.collectAttachmentsInFolder(note.parent?.path ?? '/', abortSignal), this.abortSignal);
-    }
-
-    return true;
-  }
-
-  private collectAttachmentsCurrentNote(checking: boolean): boolean {
-    const note = this.app.workspace.getActiveFile();
-    if (!note || !isMarkdownFile(this.app, note)) {
-      return false;
-    }
-
-    if (!checking) {
-      addToQueue(this.app, (abortSignal) => this.collectAttachments(note, abortSignal), this.abortSignal);
-    }
-
-    return true;
-  }
-
-  private async collectAttachmentsInFolder(folderPath: string, abortSignal: AbortSignal): Promise<void> {
-    abortSignal.throwIfAborted();
-    let movedAttachmentsCount = 0;
-    let processedNotesCount = 0;
-
-    await this.saveAllOpenNotes();
-
-    await loop({
-      abortSignal,
-      buildNoticeMessage: (note, iterationStr) => `Collecting attachments ${iterationStr} - ${note.path}`,
-      items: getMarkdownFiles(this.app, folderPath, true),
-      processItem: async (note) => {
-        abortSignal.throwIfAborted();
-        if (this.settings.isPathIgnored(note.path)) {
-          return;
-        }
-
-        const result = await this.filesHandler.collectAttachmentsForCachedNote(note.path);
-        abortSignal.throwIfAborted();
-
-        if (result.movedAttachments.length > 0) {
-          await this.linksHandler.updateChangedPathsInNote(note.path, result.movedAttachments);
-          abortSignal.throwIfAborted();
-          movedAttachmentsCount += result.movedAttachments.length;
-          processedNotesCount++;
-        }
-      },
-      progressBarTitle: 'Consistent Attachments and Links: Collecting attachments...',
-      shouldContinueOnError: true,
-      shouldShowProgressBar: true
-    });
-
-    if (movedAttachmentsCount === 0) {
-      new Notice('No files found that need to be moved');
-    } else {
-      new Notice(
-        `Moved ${String(movedAttachmentsCount)} attachment${movedAttachmentsCount > 1 ? 's' : ''} from ${String(processedNotesCount)} note${
-          processedNotesCount > 1 ? 's' : ''
-        }`
-      );
-    }
-  }
-
-  private async convertAllEmbedsPathsToRelative(): Promise<void> {
+  public async convertAllEmbedsPathsToRelative(): Promise<void> {
     await this.saveAllOpenNotes();
 
     let changedEmbedCount = 0;
@@ -381,24 +143,16 @@ export class Plugin extends PluginBase<PluginTypes> {
     }
   }
 
-  private convertAllEmbedsPathsToRelativeCurrentNote(checking: boolean): boolean {
-    const note = this.app.workspace.getActiveFile();
-    if (!note || !isMarkdownFile(this.app, note)) {
-      return false;
-    }
-
-    if (!checking) {
-      addToQueue(
-        this.app,
-        omitAsyncReturnType((abortSignal) => this.linksHandler.convertAllNoteEmbedsPathsToRelative(note.path, abortSignal)),
-        this.abortSignal
-      );
-    }
-
-    return true;
+  public convertAllEmbedsPathsToRelativeCurrentNote(note: TFile): void {
+    addToQueue({
+      abortSignal: this.abortSignal,
+      app: this.app,
+      operationFn: omitAsyncReturnType((abortSignal) => this.linksHandler.convertAllNoteEmbedsPathsToRelative(note.path, abortSignal)),
+      operationName: 'Convert all embed paths to relative in current note'
+    });
   }
 
-  private async convertAllLinkPathsToRelative(abortSignal: AbortSignal): Promise<void> {
+  public async convertAllLinkPathsToRelative(abortSignal: AbortSignal): Promise<void> {
     abortSignal.throwIfAborted();
     await this.saveAllOpenNotes();
     abortSignal.throwIfAborted();
@@ -438,74 +192,47 @@ export class Plugin extends PluginBase<PluginTypes> {
     }
   }
 
-  private convertAllLinkPathsToRelativeCurrentNote(checking: boolean): boolean {
-    const note = this.app.workspace.getActiveFile();
-    if (!note || !isMarkdownFile(this.app, note)) {
-      return false;
-    }
-
-    if (!checking) {
-      addToQueue(
-        this.app,
-        omitAsyncReturnType((abortSignal) => this.linksHandler.convertAllNoteLinksPathsToRelative(note.path, abortSignal)),
-        this.abortSignal
-      );
-    }
-
-    return true;
-  }
-
-  private async deleteEmptyFolders(): Promise<void> {
-    await this.filesHandler.deleteEmptyFolders('/');
-  }
-
-  private handleDeletedMetadata(file: TFile, prevCache: CachedMetadata): void {
-    if (!this.settings.shouldDeleteAttachmentsWithNote || this.settings.isPathIgnored(file.path) || !isMarkdownFile(this.app, file)) {
-      return;
-    }
-
-    this.deletedNoteCache.set(file.path, prevCache);
-  }
-
-  private handleFileMenu(menu: Menu, file: TAbstractFile): void {
-    if (!isFolder(file)) {
-      return;
-    }
-
-    menu.addItem((item) => {
-      item.setTitle('Collect attachments in folder')
-        .setIcon('download')
-        .onClick(() => this.collectAttachmentsInFolder(file.path, this.abortSignal));
+  public convertAllLinkPathsToRelativeCurrentNote(note: TFile): void {
+    addToQueue({
+      abortSignal: this.abortSignal,
+      app: this.app,
+      operationFn: omitAsyncReturnType((abortSignal) => this.linksHandler.convertAllNoteLinksPathsToRelative(note.path, abortSignal)),
+      operationName: 'Convert all link paths to relative in current note'
     });
   }
 
-  private async handleMetadataCacheChanged(file: TFile, abortSignal: AbortSignal): Promise<void> {
-    abortSignal.throwIfAborted();
-    if (!this.settings.shouldCollectAttachmentsAutomatically) {
-      return;
-    }
-
-    const suggestionContainer = document.querySelector<HTMLDivElement>('.suggestion-container');
-    if (suggestionContainer && suggestionContainer.style.display !== 'none') {
-      return;
-    }
-
-    await this.collectAttachments(file, abortSignal, false);
+  public async deleteEmptyFolders(): Promise<void> {
+    await this.filesHandler.deleteEmptyFolders('/');
   }
 
-  private async reorganizeVault(): Promise<void> {
+  public override async onLoadSettings(loadedSettings: ReadonlyDeep<PluginSettingsWrapper<PluginSettings>>, isInitialLoad: boolean): Promise<void> {
+    await super.onLoadSettings(loadedSettings, isInitialLoad);
+    loadedSettings.settings.revertDangerousSettings();
+  }
+
+  public override async onSaveSettings(
+    newSettings: ReadonlyDeep<PluginSettingsWrapper<PluginSettings>>,
+    oldSettings: ReadonlyDeep<PluginSettingsWrapper<PluginSettings>>,
+    context?: unknown
+  ): Promise<void> {
+    await super.onSaveSettings(newSettings, oldSettings, context);
+    this.linksHandler = new LinksHandler(this);
+    this.filesHandler = new FilesHandler(this, this.linksHandler);
+  }
+
+  public async reorganizeVault(): Promise<void> {
     await this.saveAllOpenNotes();
 
     await this.replaceAllWikilinksWithMarkdownLinks();
     await this.replaceAllWikiEmbedsWithMarkdownEmbeds();
     await this.convertAllEmbedsPathsToRelative();
     await this.convertAllLinkPathsToRelative(this.abortSignal);
-    await this.collectAllAttachments();
+    collectAttachmentsEntireVault(this);
     await this.deleteEmptyFolders();
     new Notice('Reorganization of the vault completed');
   }
 
-  private async replaceAllWikiEmbedsWithMarkdownEmbeds(): Promise<void> {
+  public async replaceAllWikiEmbedsWithMarkdownEmbeds(): Promise<void> {
     await this.saveAllOpenNotes();
 
     let changedLinksCount = 0;
@@ -540,24 +267,16 @@ export class Plugin extends PluginBase<PluginTypes> {
     }
   }
 
-  private replaceAllWikiEmbedsWithMarkdownEmbedsCurrentNote(checking: boolean): boolean {
-    const note = this.app.workspace.getActiveFile();
-    if (!note || !isMarkdownFile(this.app, note)) {
-      return false;
-    }
-
-    if (!checking) {
-      addToQueue(
-        this.app,
-        omitAsyncReturnType((abortSignal) => this.linksHandler.replaceAllNoteWikilinksWithMarkdownLinks(note.path, true, abortSignal)),
-        this.abortSignal
-      );
-    }
-
-    return true;
+  public replaceAllWikiEmbedsWithMarkdownEmbedsCurrentNote(note: TFile): void {
+    addToQueue({
+      abortSignal: this.abortSignal,
+      app: this.app,
+      operationFn: omitAsyncReturnType((abortSignal) => this.linksHandler.replaceAllNoteWikilinksWithMarkdownLinks(note.path, true, abortSignal)),
+      operationName: 'Replace all wiki embeds with markdown embeds in current note'
+    });
   }
 
-  private async replaceAllWikilinksWithMarkdownLinks(): Promise<void> {
+  public async replaceAllWikilinksWithMarkdownLinks(): Promise<void> {
     await this.saveAllOpenNotes();
 
     let changedLinksCount = 0;
@@ -592,21 +311,108 @@ export class Plugin extends PluginBase<PluginTypes> {
     }
   }
 
-  private replaceAllWikilinksWithMarkdownLinksCurrentNote(checking: boolean): boolean {
-    const note = this.app.workspace.getActiveFile();
-    if (!note || !isMarkdownFile(this.app, note)) {
-      return false;
+  public replaceAllWikilinksWithMarkdownLinksCurrentNote(note: TFile): void {
+    addToQueue({
+      abortSignal: this.abortSignal,
+      app: this.app,
+      operationFn: omitAsyncReturnType((abortSignal) => this.linksHandler.replaceAllNoteWikilinksWithMarkdownLinks(note.path, false, abortSignal)),
+      operationName: 'Replace all wiki embeds with markdown embeds in current note'
+    });
+  }
+
+  protected override createSettingsManager(): PluginSettingsManager {
+    return new PluginSettingsManager(this);
+  }
+
+  protected override createSettingsTab(): null | PluginSettingsTab {
+    return new PluginSettingsTab(this);
+  }
+
+  protected override createTranslationsMap(): TranslationsMap<PluginTypes> {
+    return translationsMap;
+  }
+
+  protected override async onLayoutReady(): Promise<void> {
+    await this.showBackupWarning();
+
+    this.registerEvent(
+      this.app.metadataCache.on('deleted', (file, prevCache) => {
+        if (prevCache) {
+          this.handleDeletedMetadata(file, prevCache);
+        }
+      })
+    );
+
+    this.registerEvent(this.app.metadataCache.on('changed', (file) => {
+      addToQueue({
+        abortSignal: this.abortSignal,
+        app: this.app,
+        operationFn: (abortSignal) => this.handleMetadataCacheChanged(file, abortSignal),
+        operationName: 'handleMetadataCacheChanged'
+      });
+    }));
+  }
+
+  protected override async onloadImpl(): Promise<void> {
+    await super.onloadImpl();
+
+    registerRenameDeleteHandlers(this, () => {
+      const settings: Partial<RenameDeleteHandlerSettings> = {
+        emptyAttachmentFolderBehavior: this.settings.emptyAttachmentFolderBehavior,
+        isNote: (path) => this.filesHandler.isNoteEx(path),
+        isPathIgnored: (path) => this.settings.isPathIgnored(path),
+        shouldDeleteConflictingAttachments: this.settings.shouldDeleteExistingFilesWhenMovingNote,
+        shouldHandleDeletions: this.settings.shouldDeleteAttachmentsWithNote,
+        shouldHandleRenames: this.settings.shouldUpdateLinks,
+        shouldRenameAttachmentFolder: this.settings.shouldMoveAttachmentsWithNote,
+        shouldUpdateFileNameAliases: this.settings.shouldChangeNoteBacklinksDisplayText
+      };
+      return settings;
+    });
+
+    if (this.settings.shouldEnableCollectCommands) {
+      new CollectAttachmentsInFileCommand(this).register();
+      new CollectAttachmentsInCurrentFolderCommand(this).register();
+      new CollectAttachmentsEntireVaultCommand(this).register();
+    }
+    new MoveAttachmentToProperFolderCommand(this).register();
+    new DeleteEmptyFoldersCommand(this).register();
+    new ConvertAllLinkPathsToRelativeCommand(this).register();
+    new ConvertAllLinkPathsToRelativeCurrentNoteCommand(this).register();
+    new ConvertAllEmbedsPathsToRelativeCommand(this).register();
+    new ConvertAllEmbedsPathsToRelativeCurrentNoteCommand(this).register();
+    new ReplaceAllWikilinksWithMarkdownLinksCommand(this).register();
+    new ReplaceAllWikilinksWithMarkdownLinksCurrentNoteCommand(this).register();
+    new ReplaceAllWikiEmbedsWithMarkdownEmbedsCommand(this).register();
+    new ReplaceAllWikiEmbedsWithMarkdownEmbedsCurrentNoteCommand(this).register();
+    new ReorganizeVaultCommand(this).register();
+    new CheckConsistencyCommand(this).register();
+
+    this.linksHandler = new LinksHandler(this);
+
+    this.filesHandler = new FilesHandler(this, this.linksHandler);
+  }
+
+  private handleDeletedMetadata(file: TFile, prevCache: CachedMetadata): void {
+    if (!this.settings.shouldDeleteAttachmentsWithNote || this.settings.isPathIgnored(file.path) || !isMarkdownFile(this.app, file)) {
+      return;
     }
 
-    if (!checking) {
-      addToQueue(
-        this.app,
-        omitAsyncReturnType((abortSignal) => this.linksHandler.replaceAllNoteWikilinksWithMarkdownLinks(note.path, false, abortSignal)),
-        this.abortSignal
-      );
+    this.deletedNoteCache.set(file.path, prevCache);
+  }
+
+  private async handleMetadataCacheChanged(file: TFile, abortSignal: AbortSignal): Promise<void> {
+    abortSignal.throwIfAborted();
+    if (!this.settings.shouldCollectAttachmentsAutomatically) {
+      return;
     }
 
-    return true;
+    const suggestionContainer = document.querySelector<HTMLDivElement>('.suggestion-container');
+    if (suggestionContainer && suggestionContainer.style.display !== 'none') {
+      return;
+    }
+
+    collectAttachmentsInAbstractFiles(this, [file]);
   }
 
   private async saveAllOpenNotes(): Promise<void> {

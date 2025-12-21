@@ -1,16 +1,19 @@
 # CHANGELOG
 
-## 3.31.16-beta.1
+## 3.32.1
 
-- chore: package-lock
-- feat: 关掉 decodeURIComponent
-- Merge tag 'tags/3.31.15' into develop 3.31.15
-- chore: release 3.31.13-beta.2
-- feat: 增加一个是否启用collect的开关
-- chore: git-town config
-- chore: release 3.31.13-beta.1
-- chore: npm i
-- fix: %20 check error
+- feat: improve description re #144
+
+## 3.32.0
+
+- refactor: extract commands
+- feat: reuse collect/move commands from <https://github.com/RainCat1998/obsidian-custom-attachment-location> re #146
+- fix: compilation
+- chore: update libs
+
+## 3.31.16
+
+- chore: update libs
 
 ## 3.31.15
 
@@ -100,6 +103,10 @@
 ## 3.30.16
 
 - Minor changes
+
+## 3.31.16-beta.1
+
+- feat: 关掉 decodeURIComponent
 
 ## 3.30.15
 
