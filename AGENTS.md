@@ -10,35 +10,35 @@ This is an Obsidian plugin that ensures consistency of attachments and links in 
 
 ### Build Commands
 
-| Command                           | Description                        |
-| --------------------------------- | ---------------------------------- |
-| `npm run build`                   | Full build (compile + bundle)      |
-| `npm run build:clean`             | Clean build                        |
-| `npm run build:compile:typescript`| Compile TypeScript only            |
-| `npm run dev`                     | Development mode with watch        |
+| Command | Description |
+| ------- | ----------- |
+| npm run build | Full build (compile + bundle) |
+| npm run build:clean | Clean build |
+| npm run build:compile:typescript | Compile TypeScript only |
+| npm run dev | Development mode with watch |
 
 ### Lint Commands
 
-| Command        | Description                      |
-| -------------- | -------------------------------- |
-| `npm run lint` | Run ESLint                       |
-| `npm run lint:fix` | Run ESLint with auto-fix      |
-| `npm run lint:md` | Lint markdown files           |
-| `npm run lint:md:fix` | Fix markdown lint issues    |
+| Command | Description |
+| ------- | ----------- |
+| npm run lint | Run ESLint |
+| npm run lint:fix | Run ESLint with auto-fix |
+| npm run lint:md | Lint markdown files |
+| npm run lint:md:fix | Fix markdown lint issues |
 
 ### Format Commands
 
-| Command              | Description                          |
-| -------------------- | ------------------------------------ |
-| `npm run format`     | Format code with Prettier            |
-| `npm run format:check` | Check formatting without changes  |
+| Command | Description |
+| ------- | ----------- |
+| npm run format | Format code with Prettier |
+| npm run format:check | Check formatting without changes |
 
 ### Other Commands
 
-| Command          | Description                    |
-| ---------------- | ------------------------------ |
-| `npm run spellcheck` | Run spell checker          |
-| `npm run commit` | Create commit with commitizen  |
+| Command | Description |
+| ------- | ----------- |
+| npm run spellcheck | Run spell checker |
+| npm run commit | Create commit with commitizen |
 
 **Note:** This project has no test framework.
 
@@ -83,15 +83,15 @@ import { Notice } from 'obsidian';
 
 ### Naming Conventions
 
-| Element       | Convention       | Example                                   |
-| ------------- | ---------------- | ----------------------------------------- |
-| Classes       | PascalCase       | `class Plugin`, `class LinksHandler`      |
-| Interfaces    | PascalCase       | `interface LinksAndEmbedsChangedInfo`     |
-| Methods       | camelCase        | `public async checkConsistency()`         |
-| Properties    | camelCase        | `private readonly cache`                  |
-| Private fields| underscore prefix| `private _internalState`                  |
-| Files         | kebab-case       | `links-handler.ts`                        |
-| Folders       | kebab-case       | `Commands/`, `Modals/`                    |
+| Element | Convention | Example |
+| ------- | ---------- | ------- |
+| Classes | PascalCase | `class Plugin`, `class LinksHandler` |
+| Interfaces | PascalCase | `interface LinksAndEmbedsChangedInfo` |
+| Methods | camelCase | `public async checkConsistency()` |
+| Properties | camelCase | `private readonly cache` |
+| Private fields | underscore prefix | `private _internalState` |
+| Files | kebab-case | `links-handler.ts` |
+| Folders | kebab-case | `Commands/`, `Modals/` |
 
 ### Type Annotations
 
