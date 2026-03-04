@@ -15,7 +15,10 @@ import {
   Vault
 } from 'obsidian';
 import { abortSignalAny } from 'obsidian-dev-utils/AbortController';
-import { invokeAsyncSafely, sleep } from 'obsidian-dev-utils/Async';
+import {
+  invokeAsyncSafely,
+  sleep
+} from 'obsidian-dev-utils/Async';
 import { appendCodeBlock } from 'obsidian-dev-utils/HTMLElement';
 import {
   AttachmentPathContext,
