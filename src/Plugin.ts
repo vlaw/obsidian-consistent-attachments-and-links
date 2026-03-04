@@ -358,7 +358,7 @@ export class Plugin extends PluginBase<PluginTypes> {
 
     registerRenameDeleteHandlers(this, () => {
       const settings: Partial<RenameDeleteHandlerSettings> = {
-        emptyAttachmentFolderBehavior: this.settings.emptyAttachmentFolderBehavior,
+        emptyFolderBehavior: this.settings.emptyFolderBehavior,
         isNote: (path) => this.filesHandler.isNoteEx(path),
         isPathIgnored: (path) => this.settings.isPathIgnored(path),
         shouldDeleteConflictingAttachments: this.settings.shouldDeleteExistingFilesWhenMovingNote,
@@ -407,8 +407,8 @@ export class Plugin extends PluginBase<PluginTypes> {
       return;
     }
 
-    const suggestionContainer = document.querySelector<HTMLDivElement>('.suggestion-container');
-    if (suggestionContainer && suggestionContainer.style.display !== 'none') {
+    const suggestionContainer = activeDocument.querySelector<HTMLDivElement>('.suggestion-container');
+    if (suggestionContainer?.isShown()) {
       return;
     }
 

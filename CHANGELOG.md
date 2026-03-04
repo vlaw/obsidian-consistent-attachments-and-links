@@ -1,8 +1,36 @@
 # CHANGELOG
 
-## 3.32.2-beta.1
+## 3.33.2
 
-- Merge tag 'tags/3.32.1' into develop 3.32.1
+- chore: update libs
+
+## 3.33.1
+
+- chore: update libs
+
+## 3.33.0
+
+- refactor: path settings
+
+## 3.32.5
+
+- refactor: unneeded enum converters
+- refactor: registerLegacySettingsConverters
+- fix: rename emptyFolderBehavior
+
+## 3.32.4
+
+- chore: update libs
+
+## 3.32.3
+
+- chore: update libs
+- fix: handle suggestions from other windows
+
+## 3.32.2
+
+- fix: hide unnecessary notices re #149
+- chore: update libs
 
 ## 3.32.1
 
