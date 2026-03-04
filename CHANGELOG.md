@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 3.33.3-beta.1
+
+- style: add trailing newline to AGENTS.md
+- style: fix AGENTS.md table formatting
+- style: fix AGENTS.md markdown lint issues
+- chore: add more words to cspell config
+- chore: update cspell config to ignore generated files
+- chore: add cspell config for agentic word
+- style: format AttachmentCollector.ts
+- fix: add missing sleep import in AttachmentCollector
+- docs: add AGENTS.md for agentic coding agents
+- chore: merge upstream/master into develop
+- chore: release 3.32.2-beta.1
+- Merge tag 'tags/3.32.1' into develop 3.32.1
+- chore: release 3.31.16-beta.1
+- chore: package-lock
+- feat: 关掉 decodeURIComponent
+- Merge tag 'tags/3.31.15' into develop 3.31.15
+- chore: release 3.31.13-beta.2
+- feat: 增加一个是否启用collect的开关
+- chore: git-town config
+- chore: release 3.31.13-beta.1
+- chore: npm i
+- fix: %20 check error
+
 ## 3.33.2
 
 - chore: update libs
