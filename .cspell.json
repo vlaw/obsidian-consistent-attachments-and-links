@@ -1,1 +1,4 @@
-{"words": ["agentic"]}
+{
+  "words": ["agentic", "wikilinks", "Wikilinks", "wikilink", "Wikilink", "backlinks", "Backlinks", "backlink", "Backlink", "frontmatter", "Dmitry", "Savosh", "Naumov", "excalidraw", "subfolders", "Jsons", "Linkpath", "Linktext"],
+  "ignorePaths": ["dist", "node_modules", "*.json", "tsconfig.tsbuildinfo"]
+}
