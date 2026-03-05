@@ -24,6 +24,7 @@
 - chore: release 3.31.13-beta.1
 - chore: npm i
 - fix: %20 check error
+- feat: safer trashing (upstream merge)
 
 ## 3.33.2
 
