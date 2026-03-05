@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.33.3-beta.2
+
+- Merge upstream/master into develop
+
 ## 3.33.3-beta.1
 
 - style: add trailing newline to AGENTS.md
