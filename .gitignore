@@ -29,3 +29,6 @@ dist
 # opencode skills
 .agents
 skills-lock.json
+
+# linkinator
+.linkinatorrc.json
