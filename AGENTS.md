@@ -42,6 +42,13 @@ This is an Obsidian plugin that ensures consistency of attachments and links in 
 
 **Note:** This project has no test framework.
 
+### Release Commands
+
+| Command | Description |
+| ------- | ----------- |
+| npm run version beta | release beta version to github, and push tag |
+| npm run version | release to github, and push tag |
+
 ## Code Style Guidelines
 
 ### TypeScript Configuration
