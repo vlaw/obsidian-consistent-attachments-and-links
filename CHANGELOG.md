@@ -1,6 +1,14 @@
 # CHANGELOG
 
-## 3.33.3-beta.2
+## 3.33.4-beta.1
+
+- Merge upstream/master into develop
+
+## 3.33.4
+
+- chore: update template
+
+## 3.33.3
 
 - Merge upstream/master into develop
 
