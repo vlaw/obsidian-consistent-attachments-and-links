@@ -25,3 +25,7 @@ dist
 .env
 
 /tsconfig.tsbuildinfo
+
+# opencode skills
+.agents
+skills-lock.json
