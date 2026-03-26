@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 3.33.4-beta.3
+
+- chore: ignore linkinator config file
+- fix: add davidvkimball to spellcheck and ignore .agents in markdown lint
+- fix: regenerate package-lock.json to resolve conflict markers
+- chore: bump version to 3.33.4-beta.2
+- chore: update AGENTS.md
+
 ## 3.33.4-beta.1
 
 - Merge upstream/master into develop
