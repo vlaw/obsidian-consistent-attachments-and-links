@@ -1,7 +1,7 @@
 import type { CachedMetadata } from 'obsidian';
 import type { TranslationsMap } from 'obsidian-dev-utils/obsidian/i18n/i18n';
-import type { PluginSettingsWrapper } from 'obsidian-dev-utils/obsidian/Plugin/PluginSettingsWrapper';
-import type { RenameDeleteHandlerSettings } from 'obsidian-dev-utils/obsidian/RenameDeleteHandler';
+import type { PluginSettingsWrapper } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-wrapper';
+import type { RenameDeleteHandlerSettings } from 'obsidian-dev-utils/obsidian/rename-delete-handler';
 import type { ReadonlyDeep } from 'type-fest';
 
 import {
@@ -10,21 +10,21 @@ import {
   setIcon,
   TFile
 } from 'obsidian';
-import { omitAsyncReturnType } from 'obsidian-dev-utils/Function';
+import { omitAsyncReturnType } from 'obsidian-dev-utils/function';
 import {
   getOrCreateFile,
   isMarkdownFile
-} from 'obsidian-dev-utils/obsidian/FileSystem';
-import { loop } from 'obsidian-dev-utils/obsidian/Loop';
-import { alert } from 'obsidian-dev-utils/obsidian/Modals/Alert';
-import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
-import { addToQueue } from 'obsidian-dev-utils/obsidian/Queue';
-import { registerRenameDeleteHandlers } from 'obsidian-dev-utils/obsidian/RenameDeleteHandler';
+} from 'obsidian-dev-utils/obsidian/file-system';
+import { loop } from 'obsidian-dev-utils/obsidian/loop';
+import { alert } from 'obsidian-dev-utils/obsidian/modals/alert';
+import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-base';
+import { addToQueue } from 'obsidian-dev-utils/obsidian/queue';
+import { registerRenameDeleteHandlers } from 'obsidian-dev-utils/obsidian/rename-delete-handler';
 import {
   createFolderSafe,
   getMarkdownFilesSorted
-} from 'obsidian-dev-utils/obsidian/Vault';
-import { dirname } from 'obsidian-dev-utils/Path';
+} from 'obsidian-dev-utils/obsidian/vault';
+import { dirname } from 'obsidian-dev-utils/path';
 
 import type { PluginSettings } from './PluginSettings.ts';
 import type { PluginTypes } from './PluginTypes.ts';
